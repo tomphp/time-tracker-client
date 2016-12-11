@@ -1,29 +1,37 @@
-module Api exposing (fetchApi, fetchProjects)
+module Api exposing (fetchApi, fetchUrl)
 
-import Types exposing (Msg (..))
+import Types exposing (Msg(..), Project)
 import Http
 import Json.Decode as Json
 import Task
+import Set
+import Siren.Decode exposing (entity)
+import Siren exposing (Entity(..), Link, linksWithClass)
+
 
 apiUrl : String
-apiUrl = "http://time-tracker-app.cfapps.io/api/v1"
+apiUrl =
+    "http://time-tracker-e2e-tests.cfapps.io/api/v1"
 
 
 fetchApi : Cmd Msg
-fetchApi = Task.perform FetchFail FetchApiSucceed (Http.get decodeApi apiUrl)
+fetchApi =
+    Http.get apiUrl decodeApi |> Http.send FetchApi
+
+
+fetchUrl : String -> Cmd Msg
+fetchUrl url =
+    Http.get url (Json.succeed [ "Project1" ]) |> Http.send FetchProjects
 
 
 decodeApi : Json.Decoder String
-decodeApi = Json.at ["data", "relationships", "projects", "links", "related"] Json.string
+decodeApi =
+    Json.map (linkHref "projects") entity
 
 
-fetchProjects : String -> Cmd Msg
-fetchProjects url = Task.perform FetchFail FetchProjectsSucceed (Http.get decodeProjects url)
-
-
-decodeProjects : Json.Decoder (List String)
-decodeProjects = Json.at ["data"] (Json.list decodeProject)
-
-
-decodeProject : Json.Decoder String
-decodeProject = Json.at ["attributes", "name"] Json.string
+linkHref : String -> Entity -> String
+linkHref class entity =
+    linksWithClass class entity
+        |> List.head
+        |> Maybe.withDefault (Link Set.empty Set.empty "not found" Nothing Nothing)
+        |> .href

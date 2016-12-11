@@ -1,17 +1,19 @@
-module Types exposing (Model, Msg (..))
+module Types exposing (Model, Msg(..), Project)
 
 import Http
 
+
 type alias Project =
-    { name : String
-    , id : String
-    }
+    String
+
 
 type alias Model =
-    { projects : List String
+    { apiEndpoint : String
+    , projectsEndpoint : String
+    , projects : List Project
     }
 
 
-type Msg = FetchApiSucceed String
-         | FetchProjectsSucceed (List String)
-         | FetchFail Http.Error
+type Msg
+    = FetchApi (Result Http.Error String)
+    | FetchProjects (Result Http.Error (List String))
