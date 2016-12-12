@@ -40,57 +40,47 @@ linkWithClassHref class entity =
 
 projectNames : Json.Decoder (List String)
 projectNames =
-    Json.map (entitiesWithClass "projects" >> List.map (.properties >> Dict.get "name" >> Maybe.map valueToString >> Maybe.withDefault "Ouch")) entity
+    Json.map
+        (entitiesWithClass "project"
+            >> List.map
+                (\e ->
+                    entityRepresenation e
+                        |> Maybe.andThen (.properties >> Dict.get "name")
+                        |> Maybe.andThen valueToString
+                        |> Maybe.withDefault "Ouch"
+                )
+        )
+        entity
 
 
-valueToString : Value -> String
+entitiesWithClass : String -> Entity -> List EmbeddedEntity
+entitiesWithClass class entity =
+    List.filter (entityRecord >> hasClass class) entity.entities
+
+
+entityRecord : EmbeddedEntity -> { rels : Siren.Rels, classes : Siren.Classes }
+entityRecord e =
+    case e of
+        EmbeddedRepresentation r ->
+            { rels = r.rels, classes = r.classes }
+
+        EmbeddedLink r ->
+            { rels = r.rels, classes = r.classes }
+
+
+hasClass : String -> { a | classes : Siren.Classes } -> Bool
+hasClass class subject =
+    subject.classes |> Set.member class
+
+
+valueToString : Value -> Maybe String
 valueToString v =
     case v of
         StringValue s ->
-            s
+            Just s
 
         _ ->
-            "[not-string]"
-
-
-nullEntity : Entity
-nullEntity =
-    { rels = Set.empty
-    , classes = Set.empty
-    , properties = Dict.empty
-    , links = []
-    , entities = []
-    , actions = []
-    }
-
-
-entitiesWithClass : String -> Entity -> List Entity
-entitiesWithClass class entity =
-    entity.entities
-        |> List.filter isEntityRepresenation
-        |> List.map entityRepresenation
-        |> List.filter isSomething
-        |> List.map (Maybe.withDefault nullEntity)
-
-
-isSomething : Maybe a -> Bool
-isSomething x =
-    case x of
-        Just _ ->
-            True
-
-        Nothing ->
-            False
-
-
-isEntityRepresenation : EmbeddedEntity -> Bool
-isEntityRepresenation entity =
-    case entity of
-        EmbeddedRepresentation _ ->
-            True
-
-        EmbeddedLink _ ->
-            False
+            Nothing
 
 
 entityRepresenation : EmbeddedEntity -> Maybe Entity
