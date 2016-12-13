@@ -36,7 +36,10 @@ update msg model =
         FetchProject url ->
             ( model, fetchProject url )
 
-        ProjectFetched _ ->
+        ProjectFetched (Ok project) ->
+            ( { model | project = Just project }, Cmd.none )
+
+        ProjectFetched (Err _) ->
             ( model, Cmd.none )
 
 

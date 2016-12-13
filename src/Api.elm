@@ -59,7 +59,10 @@ projects =
 
 project : Json.Decoder Project
 project =
-    Json.succeed <| Project "fetch" "me"
+    Json.map2
+        Project
+        (Json.at [ "properties", "name" ] Json.string)
+        (Json.succeed "href")
 
 
 projectName : Entity -> Maybe String

@@ -12,24 +12,33 @@ view model =
         [ h1 [] [ text "Time Tracker" ]
         , div [] [ text model.apiEndpoint ]
         , div [] [ text model.projectsEndpoint ]
-        , ul [] (projectsHtml model)
+        , ul [] (projectsListHtml model)
+        , div [] [ (projectHtml model.project) ]
         ]
 
 
-projectsHtml : Model -> List (Html Msg)
-projectsHtml model =
-    List.map projectHtml model.projects
+projectsListHtml : Model -> List (Html Msg)
+projectsListHtml model =
+    List.map projectItemHtml model.projects
+
+
+projectItemHtml : Maybe Project -> Html Msg
+projectItemHtml project =
+    case project of
+        Just p ->
+            li
+                [ onClick (FetchProject p.url) ]
+                [ text p.name ]
+
+        Nothing ->
+            li [] [ text "[error]" ]
 
 
 projectHtml : Maybe Project -> Html Msg
 projectHtml project =
     case project of
         Just p ->
-            li
-                [ onClick (FetchProject p.url) ]
-                [ span [] [ text p.name ]
-                , span [] [ text p.url ]
-                ]
+            text (String.concat [ "Project : ", p.name ])
 
         Nothing ->
-            li [] [ text "[error]" ]
+            text "Nothing!"
