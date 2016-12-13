@@ -6,6 +6,7 @@ import Http
 type alias Project =
     { name : String
     , url : String
+    , totalTime : Maybe String
     }
 
 
@@ -21,4 +22,4 @@ type Msg
     = IndexFetched (Result Http.Error String)
     | ProjectsFetched (Result Http.Error (List (Maybe Project)))
     | FetchProject String
-    | ProjectFetched (Result Http.Error Project)
+    | ProjectFetched (Result Http.Error (Maybe Project))

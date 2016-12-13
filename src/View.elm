@@ -38,7 +38,11 @@ projectHtml : Maybe Project -> Html Msg
 projectHtml project =
     case project of
         Just p ->
-            text (String.concat [ "Project : ", p.name ])
+            div []
+                [ text (String.concat [ "Project : ", p.name ])
+                , br [] []
+                , text (String.concat [ "Total Time : ", Maybe.withDefault "[unknown]" p.totalTime ])
+                ]
 
         Nothing ->
-            text "Nothing!"
+            text "[none selected]"

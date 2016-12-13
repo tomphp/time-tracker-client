@@ -3,12 +3,27 @@ module Api exposing (fetchIndex, fetchProjects, fetchProject)
 import Dict
 import Http
 import Json.Decode as Json
+import Maybe.Extra
 import Set
-import Siren exposing (Entity, EmbeddedEntity(..), Link, linksWithClass, linksWithRel, Value(..))
 import Siren.Decode exposing (entity)
+import Siren.Entity
+    exposing
+        ( Entity
+        , EmbeddedEntity(..)
+        , Link
+        , Rels
+        , Classes
+        , linksWithClass
+        , linksWithRel
+        , linksWithClass
+        , embeddedEntitiesWithClass
+        , embeddedEntities
+        , firstLinkWithRel
+        , propertyString
+        )
+import Siren.Value exposing (Value(..))
 import Task
 import Types exposing (Msg(..), Project)
-import Maybe.Extra
 
 
 apiUrl : String
@@ -47,73 +62,17 @@ linkWithClassHref class entity =
 projects : Json.Decoder (List (Maybe Project))
 projects =
     Json.map
-        (entitiesWithClass "project"
-            >> List.map
-                (\e ->
-                    Maybe.map Project (entityRepresenation e |> Maybe.andThen projectName)
-                        |> Maybe.Extra.andMap (entityRepresenation e |> Maybe.andThen projectHref)
-                )
-        )
+        (embeddedEntitiesWithClass "project" >> List.map entityToProject)
         entity
 
 
-project : Json.Decoder Project
+project : Json.Decoder (Maybe Project)
 project =
-    Json.map2
-        Project
-        (Json.at [ "properties", "name" ] Json.string)
-        (Json.succeed "href")
+    entity |> Json.map entityToProject
 
 
-projectName : Entity -> Maybe String
-projectName e =
-    e.properties
-        |> Dict.get "name"
-        |> Maybe.andThen valueToString
-
-
-projectHref : Entity -> Maybe String
-projectHref e =
-    linksWithRel "self" e
-        |> List.head
-        |> Maybe.map .href
-
-
-entitiesWithClass : String -> Entity -> List EmbeddedEntity
-entitiesWithClass class entity =
-    List.filter (entityRecord >> hasClass class) entity.entities
-
-
-entityRecord : EmbeddedEntity -> { rels : Siren.Rels, classes : Siren.Classes }
-entityRecord e =
-    case e of
-        EmbeddedRepresentation r ->
-            { rels = r.rels, classes = r.classes }
-
-        EmbeddedLink r ->
-            { rels = r.rels, classes = r.classes }
-
-
-hasClass : String -> { a | classes : Siren.Classes } -> Bool
-hasClass class subject =
-    subject.classes |> Set.member class
-
-
-valueToString : Value -> Maybe String
-valueToString v =
-    case v of
-        StringValue s ->
-            Just s
-
-        _ ->
-            Nothing
-
-
-entityRepresenation : EmbeddedEntity -> Maybe Entity
-entityRepresenation entity =
-    case entity of
-        EmbeddedRepresentation record ->
-            Just record
-
-        EmbeddedLink record ->
-            Nothing
+entityToProject : Entity -> Maybe Project
+entityToProject entity =
+    Maybe.map Project (propertyString "name" entity)
+        |> Maybe.Extra.andMap (firstLinkWithRel "self" entity |> Maybe.map .href)
+        |> Maybe.Extra.andMap (propertyString "total_time" entity |> Maybe.map Just)
