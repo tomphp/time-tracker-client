@@ -18,7 +18,7 @@ type alias Model =
 
 
 type Msg
-    = FetchApi (Result Http.Error String)
-    | FetchProjects (Result Http.Error (List (Maybe Project)))
+    = IndexFetched (Result Http.Error String)
+    | ProjectsFetched (Result Http.Error (List (Maybe Project)))
     | FetchProject String
     | ProjectFetched (Result Http.Error Project)

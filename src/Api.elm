@@ -18,12 +18,12 @@ apiUrl =
 
 fetchIndex : Cmd Msg
 fetchIndex =
-    Http.get apiUrl index |> Http.send FetchApi
+    Http.get apiUrl index |> Http.send IndexFetched
 
 
 fetchProjects : String -> Cmd Msg
 fetchProjects url =
-    Http.get url projects |> Http.send FetchProjects
+    Http.get url projects |> Http.send ProjectsFetched
 
 
 fetchProject : String -> Cmd Msg

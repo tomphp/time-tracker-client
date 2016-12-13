@@ -21,16 +21,16 @@ initialModel =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FetchApi (Ok url) ->
+        IndexFetched (Ok url) ->
             ( { model | projectsEndpoint = url }, fetchProjects url )
 
-        FetchApi (Err _) ->
+        IndexFetched (Err _) ->
             ( model, Cmd.none )
 
-        FetchProjects (Ok projects) ->
+        ProjectsFetched (Ok projects) ->
             ( { model | projects = projects }, Cmd.none )
 
-        FetchProjects (Err _) ->
+        ProjectsFetched (Err _) ->
             ( model, Cmd.none )
 
         FetchProject url ->
