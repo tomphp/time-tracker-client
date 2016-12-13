@@ -1,4 +1,4 @@
-module Api exposing (fetchApi, fetchUrl)
+module Api exposing (fetchIndex, fetchProjects, fetchProject)
 
 import Dict
 import Http
@@ -16,18 +16,23 @@ apiUrl =
     "http://time-tracker-e2e-tests.cfapps.io/api/v1"
 
 
-fetchApi : Cmd Msg
-fetchApi =
-    Http.get apiUrl decodeApi |> Http.send FetchApi
+fetchIndex : Cmd Msg
+fetchIndex =
+    Http.get apiUrl index |> Http.send FetchApi
 
 
-fetchUrl : String -> Cmd Msg
-fetchUrl url =
-    Http.get url projectNames |> Http.send FetchProjects
+fetchProjects : String -> Cmd Msg
+fetchProjects url =
+    Http.get url projects |> Http.send FetchProjects
 
 
-decodeApi : Json.Decoder String
-decodeApi =
+fetchProject : String -> Cmd Msg
+fetchProject url =
+    Http.get url project |> Http.send ProjectFetched
+
+
+index : Json.Decoder String
+index =
     Json.map (linkWithClassHref "projects") entity
 
 
@@ -39,8 +44,8 @@ linkWithClassHref class entity =
         |> .href
 
 
-projectNames : Json.Decoder (List (Maybe Project))
-projectNames =
+projects : Json.Decoder (List (Maybe Project))
+projects =
     Json.map
         (entitiesWithClass "project"
             >> List.map
@@ -50,6 +55,11 @@ projectNames =
                 )
         )
         entity
+
+
+project : Json.Decoder Project
+project =
+    Json.succeed <| Project "fetch" "me"
 
 
 projectName : Entity -> Maybe String
