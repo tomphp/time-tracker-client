@@ -4,10 +4,11 @@ import Dict
 import Http
 import Json.Decode as Json
 import Set
-import Siren exposing (Entity, EmbeddedEntity(..), Link, linksWithClass, Value(..))
+import Siren exposing (Entity, EmbeddedEntity(..), Link, linksWithClass, linksWithRel, Value(..))
 import Siren.Decode exposing (entity)
 import Task
 import Types exposing (Msg(..), Project)
+import Maybe.Extra
 
 
 apiUrl : String
@@ -38,19 +39,31 @@ linkWithClassHref class entity =
         |> .href
 
 
-projectNames : Json.Decoder (List String)
+projectNames : Json.Decoder (List (Maybe Project))
 projectNames =
     Json.map
         (entitiesWithClass "project"
             >> List.map
                 (\e ->
-                    entityRepresenation e
-                        |> Maybe.andThen (.properties >> Dict.get "name")
-                        |> Maybe.andThen valueToString
-                        |> Maybe.withDefault "Ouch"
+                    Maybe.map Project (entityRepresenation e |> Maybe.andThen projectName)
+                        |> Maybe.Extra.andMap (entityRepresenation e |> Maybe.andThen projectHref)
                 )
         )
         entity
+
+
+projectName : Entity -> Maybe String
+projectName e =
+    e.properties
+        |> Dict.get "name"
+        |> Maybe.andThen valueToString
+
+
+projectHref : Entity -> Maybe String
+projectHref e =
+    linksWithRel "self" e
+        |> List.head
+        |> Maybe.map .href
 
 
 entitiesWithClass : String -> Entity -> List EmbeddedEntity

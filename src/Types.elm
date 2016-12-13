@@ -4,16 +4,18 @@ import Http
 
 
 type alias Project =
-    String
+    { name : String
+    , url : String
+    }
 
 
 type alias Model =
     { apiEndpoint : String
     , projectsEndpoint : String
-    , projects : List Project
+    , projects : List (Maybe Project)
     }
 
 
 type Msg
     = FetchApi (Result Http.Error String)
-    | FetchProjects (Result Http.Error (List String))
+    | FetchProjects (Result Http.Error (List (Maybe Project)))
