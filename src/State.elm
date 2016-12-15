@@ -1,6 +1,13 @@
 module State exposing (init, update, subscriptions)
 
-import Api exposing (fetchIndex, fetchProjects, fetchProject)
+import Api
+    exposing
+        ( fetchIndex
+        , fetchProjects
+        , fetchProject
+        , fetchProjects
+        , fetchDevelopers
+        )
 import Types exposing (Model, Msg(..))
 
 
@@ -12,17 +19,25 @@ init =
 initialModel : Model
 initialModel =
     { apiEndpoint = "http://time-tracker-e2e-tests.cfapps.io/api/v1"
-    , projectsEndpoint = ""
+    , projectsEndpoint = Nothing
+    , developersEndpoint = Nothing
     , projects = []
     , project = Nothing
+    , developers = []
     }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        IndexFetched (Ok url) ->
-            ( { model | projectsEndpoint = url }, fetchProjects url )
+        IndexFetched (Ok ( projects, developers )) ->
+            { model
+                | projectsEndpoint = Just projects
+                , developersEndpoint = Just developers
+            }
+                ! [ fetchProjects projects
+                  , fetchDevelopers developers
+                  ]
 
         IndexFetched (Err _) ->
             ( model, Cmd.none )
@@ -40,6 +55,12 @@ update msg model =
             ( { model | project = project }, Cmd.none )
 
         ProjectFetched (Err _) ->
+            ( model, Cmd.none )
+
+        DevelopersFetched (Ok developers) ->
+            ( { model | developers = developers }, Cmd.none )
+
+        DevelopersFetched (Err _) ->
             ( model, Cmd.none )
 
 

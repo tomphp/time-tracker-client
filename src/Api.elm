@@ -1,4 +1,4 @@
-module Api exposing (fetchIndex, fetchProjects, fetchProject)
+module Api exposing (fetchIndex, fetchProjects, fetchProject, fetchDevelopers)
 
 import Dict
 import Http
@@ -10,9 +10,6 @@ import Siren.Entity
     exposing
         ( Entity
         , EmbeddedEntity(..)
-        , Link
-        , Rels
-        , Classes
         , linksWithClass
         , linksWithRel
         , linksWithClass
@@ -23,7 +20,7 @@ import Siren.Entity
         )
 import Siren.Value exposing (Value(..))
 import Task
-import Types exposing (Msg(..), Project)
+import Types exposing (Msg(..), Project, Developer, TimeEntry)
 
 
 apiUrl : String
@@ -41,28 +38,42 @@ fetchProjects url =
     Http.get url projects |> Http.send ProjectsFetched
 
 
+fetchDevelopers : String -> Cmd Msg
+fetchDevelopers url =
+    Http.get url developers |> Http.send DevelopersFetched
+
+
 fetchProject : String -> Cmd Msg
 fetchProject url =
     Http.get url project |> Http.send ProjectFetched
 
 
-index : Json.Decoder String
+index : Json.Decoder ( String, String )
 index =
-    Json.map (linkWithClassHref "projects") entity
+    Json.map2 (,)
+        (Json.map (linkWithClassHref "projects") entity)
+        (Json.map (linkWithClassHref "developers") entity)
 
 
 linkWithClassHref : String -> Entity -> String
-linkWithClassHref class entity =
-    linksWithClass class entity
-        |> List.head
-        |> Maybe.withDefault (Link Set.empty Set.empty "not found" Nothing Nothing)
-        |> .href
+linkWithClassHref class =
+    linksWithClass class
+        >> List.head
+        >> Maybe.map .href
+        >> Maybe.withDefault "not found"
 
 
 projects : Json.Decoder (List (Maybe Project))
 projects =
     Json.map
         (embeddedEntitiesWithClass "project" >> List.map entityToProject)
+        entity
+
+
+developers : Json.Decoder (List (Maybe Developer))
+developers =
+    Json.map
+        (embeddedEntitiesWithClass "developer" >> List.map entityToDeveloper)
         entity
 
 
@@ -76,3 +87,20 @@ entityToProject entity =
     Maybe.map Project (propertyString "name" entity)
         |> Maybe.Extra.andMap (firstLinkWithRel "self" entity |> Maybe.map .href)
         |> Maybe.Extra.andMap (propertyString "total_time" entity |> Maybe.map Just)
+        |> Maybe.map
+            ((|>) (embeddedEntitiesWithClass "time-entry" entity |> List.map entityToTimeEntry))
+
+
+entityToDeveloper : Entity -> Maybe Developer
+entityToDeveloper entity =
+    Maybe.map Developer (propertyString "name" entity)
+        |> Maybe.Extra.andMap (propertyString "email" entity)
+        |> Maybe.Extra.andMap (firstLinkWithRel "self" entity |> Maybe.map .href)
+
+
+entityToTimeEntry : Entity -> TimeEntry
+entityToTimeEntry entity =
+    { date = propertyString "date" entity |> Maybe.withDefault "[unknown]"
+    , period = propertyString "period" entity |> Maybe.withDefault "[unknown]"
+    , description = propertyString "description" entity |> Maybe.withDefault "[unknown]"
+    }
