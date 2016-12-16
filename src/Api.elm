@@ -1,8 +1,9 @@
 module Api exposing (fetchIndex, fetchProjects, fetchProject, fetchDevelopers)
 
-import Dict
+import Dict exposing (..)
 import Http
 import Json.Decode as Json
+import List.Extra
 import Maybe.Extra
 import Set
 import Siren.Decode exposing (entity)
@@ -63,18 +64,24 @@ linkWithClassHref class =
         >> Maybe.withDefault "not found"
 
 
-projects : Json.Decoder (List (Maybe Project))
+projects : Json.Decoder (Dict String Project)
 projects =
-    Json.map
-        (embeddedEntitiesWithClass "project" >> List.map entityToProject)
-        entity
+    Json.map (embeddedEntitiesWithClass "project" >> List.map entityToProject) entity
+        |> Json.map (List.filterMap identity)
+        |> Json.map (listToDict .id)
 
 
-developers : Json.Decoder (List (Maybe Developer))
+listToDict : (a -> comparable) -> List a -> Dict comparable a
+listToDict f list =
+    Dict.fromList <| List.Extra.zip (List.map f list) list
+
+
+developers : Json.Decoder (List Developer)
 developers =
     Json.map
         (embeddedEntitiesWithClass "developer" >> List.map entityToDeveloper)
         entity
+        |> Json.map (List.filterMap identity)
 
 
 project : Json.Decoder (Maybe Project)
@@ -84,7 +91,8 @@ project =
 
 entityToProject : Entity -> Maybe Project
 entityToProject entity =
-    Maybe.map Project (propertyString "name" entity)
+    Maybe.map Project (propertyString "id" entity)
+        |> Maybe.Extra.andMap (propertyString "name" entity)
         |> Maybe.Extra.andMap (firstLinkWithRel "self" entity |> Maybe.map .href)
         |> Maybe.Extra.andMap (propertyString "total_time" entity |> Maybe.map Just)
         |> Maybe.map

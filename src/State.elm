@@ -8,6 +8,7 @@ import Api
         , fetchProjects
         , fetchDevelopers
         )
+import Dict
 import Types exposing (Model, Msg(..))
 
 
@@ -21,7 +22,7 @@ initialModel =
     { apiEndpoint = "http://time-tracker-e2e-tests.cfapps.io/api/v1"
     , projectsEndpoint = Nothing
     , developersEndpoint = Nothing
-    , projects = []
+    , projects = Dict.empty
     , project = Nothing
     , developers = []
     }

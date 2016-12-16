@@ -1,5 +1,6 @@
 module View exposing (view)
 
+import Dict exposing (..)
 import Types exposing (Model, Msg(..), Project, Developer, TimeEntry)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -15,16 +16,26 @@ view model =
         , div [] [ text <| Maybe.withDefault "loading..." model.developersEndpoint ]
         , ul [] (projectListHtml model)
         , ul [] (developerListHtml model)
-        , div []
-            [ (projectItemHtml model.project)
-            , ul [] (timeEntryListHtml model)
-            ]
+        , projectHtml model.project
         ]
+
+
+projectHtml : Maybe Project -> Html Msg
+projectHtml project =
+    case project of
+        Just p ->
+            div []
+                [ projectItemHtml p
+                , timeEntryListHtml p
+                ]
+
+        Nothing ->
+            text ""
 
 
 projectListHtml : Model -> List (Html Msg)
 projectListHtml model =
-    List.map projectItemHtml model.projects
+    List.map projectItemHtml <| Dict.values model.projects
 
 
 developerListHtml : Model -> List (Html Msg)
@@ -32,39 +43,27 @@ developerListHtml model =
     List.map developerItemHtml model.developers
 
 
-timeEntryListHtml : Model -> List (Html Msg)
-timeEntryListHtml model =
-    Maybe.map .entries model.project
-        |> Maybe.withDefault []
-        |> List.map timeEntryItemHtml
+timeEntryListHtml : Project -> Html Msg
+timeEntryListHtml project =
+    table [] <| List.map timeEntryItemHtml project.entries
 
 
-projectItemHtml : Maybe Project -> Html Msg
+projectItemHtml : Project -> Html Msg
 projectItemHtml project =
-    case project of
-        Just p ->
-            li
-                [ onClick (FetchProject p.url) ]
-                [ text p.name ]
-
-        Nothing ->
-            li [] [ text "[error]" ]
+    li
+        [ onClick (FetchProject project.url) ]
+        [ text project.name ]
 
 
-developerItemHtml : Maybe Developer -> Html Msg
+developerItemHtml : Developer -> Html Msg
 developerItemHtml developer =
-    case developer of
-        Just d ->
-            li [] [ text d.name, text " - ", text d.email ]
-
-        Nothing ->
-            li [] [ text "[error]" ]
+    li [] [ text developer.name, text " - ", text developer.email ]
 
 
 timeEntryItemHtml : TimeEntry -> Html Msg
 timeEntryItemHtml entry =
-    div []
-        [ text entry.date
-        , text entry.period
-        , text entry.description
+    tr []
+        [ td [] [ text entry.date ]
+        , td [] [ text entry.period ]
+        , td [] [ text entry.description ]
         ]
